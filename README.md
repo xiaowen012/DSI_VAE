@@ -1,5 +1,5 @@
 # DSI_VAE
-Code example for "Prediction of Fault Slip Tendency in CO2 Storage using Data-space Inversion"
+Code for "Prediction of Fault Slip Tendency in CO2 Storage using Data-space Inversion"
 
 models/: Directory to store Python scripts for VAE and DSI
 
