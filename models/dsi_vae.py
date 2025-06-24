@@ -28,7 +28,7 @@ from keras.layers import Input, Flatten, Dense, Lambda, Reshape, concatenate, Ti
 from keras.models import Model
 from keras.optimizers import Adam
 
-
+# Sampling function for VAE
 def sampling(args):
     z_mean, z_log_var = args
     batch = K.shape(z_mean)[0]
@@ -37,74 +37,69 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
+# Define VAE model
 def create_vae(input_dim, latent_dim):
-
+    # --- Encoder ---
     encoder_input = Input(shape=input_dim)
     x = ConvLSTM3D(16, (3, 3, 3), strides=(2, 2, 2), padding = 'same', activation='relu', return_sequences = True)(encoder_input)
     x = ConvLSTM3D(32, (3, 3, 3), strides=(2, 2, 2), padding = 'same', activation='relu', return_sequences = True)(x)
     x = ConvLSTM3D(64, (3, 3, 3), strides=(2, 2, 2), padding = 'same', activation='relu', return_sequences = True)(x)
     z = ConvLSTM3D(16, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation = None, return_sequences = False)(x)  
-
     z_flatten = Flatten()(z)
-    
     z_mean = Dense(latent_dim)(z_flatten)
     z_log_var = Dense(latent_dim)(z_flatten)
-
     z_sample = Lambda(sampling, output_shape=latent_dim)([z_mean, z_log_var])
     
     encoder = Model(encoder_input, [z_mean, z_log_var, z_sample], name='encoder')
     
-
+    # --- Decoder ---
     decoder_input = Input(shape = latent_dim)
     x = Dense(3 * 7 * 7 * 16)(decoder_input)
     x = Reshape((3, 7, 7, 16))(x)
     x = RepeatConv(n_t)(x)
-    
-    x = ConvLSTM3D(16, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation='relu', return_sequences = True)(x)
-    
+    x = ConvLSTM3D(16, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation='relu', return_sequences = True)(x) 
     x = ConvLSTM3D(64, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation='relu', return_sequences = True)(x)
     x = time_dconv_bn_nolinear(64, 3, 3, 3, stride=(2, 2, 2))(x)
-    
     x = ConvLSTM3D(128, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation='relu', return_sequences = True)(x)
     x = time_dconv_bn_nolinear(128, 3, 3, 3, stride=(2, 2, 2))(x)
-    x = time_cropping_3D(cropping = (1, 1, 1))(x)
-    
+    x = time_cropping_3D(cropping = (1, 1, 1))(x)    
     x = ConvLSTM3D(32, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation='relu', return_sequences = True)(x)
     x = time_dconv_bn_nolinear(32, 3, 3, 3, stride=(2, 2, 2))(x)
     x = time_cropping_3D(cropping = (0, 1, 1))(x)
-    
-    decoder_output = ConvLSTM3D(4, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation = None, return_sequences = True)(x) 
+    decoder_output = ConvLSTM3D(4, (3, 3, 3), strides=(1, 1, 1), padding = 'same', activation = None, return_sequences = True)(x)   
     
     decoder = Model(decoder_input, decoder_output, name = 'decoder')
 
     return encoder, decoder
 
 
+# Build and load pre-trained VAE
 n_t = 7
 n_z = 20
 input_dim=(n_t, n_z, 50, 50, 4)
 latent_dim  = 256
 encoder, decoder = create_vae(input_dim, latent_dim)
-
 input_encoder = Input(shape = input_dim)
 [z_mean, z_log_var, z_latent] = encoder(input_encoder)
 decoder_output = decoder(z_latent)
 vae_model = Model(input_encoder, decoder_output)
-
+# Load pre-trained VAE weights
 vae_model.load_weights('saved-model.h5')
 vae_model.summary()
 
 
+# Load data
 data_train = np.load('data_train_norm.npy')
 data_eval = np.load('data_eval_norm.npy')
 data_test = np.load('data_test_norm.npy')
 data_all = np.concatenate([data_train, data_eval, data_test], axis=0)
 
-
+# Encode all input samples into latent vectors
 [_, _, z_full] = encoder.predict(data_all)
 num_train = 1200
 
 
+# Load fault and geomechanical parameters
 e_field = np.load('params/e_field.npy')
 perm_multiplier1 = np.load('params/perm_multiplier1.npy')
 perm_multiplier2 = np.load('params/perm_multiplier2.npy')
@@ -112,7 +107,7 @@ poisson = np.load('params/poisson.npy')
 biot = np.load('params/biot.npy')
 gamma = np.load('params/gamma.npy')
 
-
+# Normalize each parameter over training samples
 max_e_field = np.max(e_field[:num_train, :])
 min_e_field = np.min(e_field[:num_train, :])
 e_field_norm = (e_field - min_e_field) / (max_e_field - min_e_field)
@@ -151,32 +146,39 @@ y_min = np.min(y_all, axis = 0, keepdims=True)
 y_max = np.max(y_all, axis = 0, keepdims=True)
 
 
+# Observation well
 wells = [25, 25, 29, 34, 19, 22, 34, 15]
 well_loc_x = wells[:4]
 well_loc_y = wells[4:]
 
+
+# Denormalization constants
 p_mean, p_std = 18465360.0, 1516672.1
 strain_mean, strain_std = 8.40719e-05, 7.3231065e-05
 ns_mean, ns_std = 7375302.27780193, 1026706.3068824525
 ss_mean, ss_std = 3675581.8832918517, 486383.079628042
 
+# Denormalize data
 pressure_data = data_all[..., 0] * p_std + p_mean
 strain_data = data_all[..., 1] * strain_std + strain_mean
 
+# Select time and layer indices for observations and predictions
 n_r = pressure_data.shape[0]
-
 n_layer_select_p = np.array(range(20))
 n_layer_select_s = np.array(range(20))
 n_t_select = [-1] 
 n_t_list = [0, 1, 2, 3] 
 n_t_hm = len(n_t_list)
 
+# Extract pressure/strain values at observation wells
 dp = pressure_data[:n_r, n_t_list][:, :, n_layer_select_p][...,well_loc_y, well_loc_x].reshape((n_r, -1)) * 1e-6
 ds = strain_data[:n_r, n_t_list][:, :, n_layer_select_s][...,well_loc_y, well_loc_x].reshape((n_r, -1))
 
+# Set observation errors
 error_p = 0.1
 error_s = 1e-5
 
+# Covariance matrix for observations
 n_well = len(well_loc_x)
 n_hm_p = n_well * len(n_layer_select_p) * n_t_hm
 n_hm_s = n_well * len(n_layer_select_s) * n_t_hm
@@ -184,7 +186,7 @@ n_hm = n_hm_p + n_hm_s
 obs_data_std = np.concatenate([error_p * np.ones((n_hm_p,)), error_s * np.ones((n_hm_s,))], axis = 0)
 cd = np.diag(obs_data_std ** 2)
 
-
+# Define prediction model for ESMDA
 class autoencoder_parameterization():
     def __init__(self, period='HM'):
         self.period = period
@@ -212,6 +214,7 @@ class autoencoder_parameterization():
         return pred
 
 
+# Prepare ensemble and run ESMDA
 dhm_ensemble = np.concatenate([dp, ds], axis=-1)
 df_ensemble = dhm_ensemble
 dfull_ensemble = dhm_ensemble
@@ -225,12 +228,11 @@ obs_time_idx = range(n_hm)
 n_obs = n_hm
 n_obs_p = n_hm_p
 
-
 i_list = [1350]
-
 for true_idx in i_list:
     true_data = dfull_ensemble[true_idx]
     obs_data_para = {}
+    # Add Gaussian noise to observations
     rand_num =  np.random.randn(n_obs)
     obs_data_val = true_data.copy()[obs_time_idx]
     obs_data_val[:n_obs_p] = true_data[obs_time_idx][:n_obs_p] + error_p * rand_num[:n_obs_p]
@@ -239,24 +241,23 @@ for true_idx in i_list:
     obs_data_std = obs_data_val.copy()
     obs_data_std[:n_obs_p] = error_p
     obs_data_std[n_obs_p:] = error_s
-    
     obs_data_std_in_likeli = obs_data_std
-
     obs_data_para['val'] = obs_data_val
     obs_data_para['std'] = obs_data_std
     obs_data_para['std_in_likeli'] = obs_data_std_in_likeli
 
+    # ESMDA setup
     is_HT = True 
     nd = n_hm
     nr = 600
     nr_list = range(0, 1200, 2)
-
     na = 4   
     alpha = np.array([9.333, 7.0, 4.0, 2.0])
     d_obs = obs_data_para['val'].reshape((-1, 1))    
     cd_list = obs_data_para['std_in_likeli'] ** 2
     cd = np.diag(cd_list.reshape((-1, )))
-    
+
+    # Run ESMDA
     ae_para = autoencoder_parameterization()
     nm = 256 + 6
     print('nm: ', nm)
@@ -275,7 +276,7 @@ for true_idx in i_list:
     print('Realization ', true_idx, ': End posterior prediction')
     print(pred_ae_post.shape)
 
-    # save results
+    # Save results
     pred_results = {}
     pred_results['post_d_aae'] = pred_ae_post
     pred_results['post_m_aae'] = es_mda.m_posterior
