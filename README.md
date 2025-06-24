@@ -16,7 +16,7 @@ In this work, we implement a variational autoencoder (VAE)-based data-space inve
 
 
 ## Contents
-- `models/`: Directory to store Python scripts for the VAE (`vae_train.py`) and DSI (`dsi_vae.py`). Additional functions and modules required by these scripts are also included in this directory (`ESMDA.py`, `layer_3D.py`, `parameterization.py`, and `util.py`).
+- `models/`: Directory to store Python scripts for the VAE (`vae_train.py`) and DSI (`dsi_vae.py`). Additional functions and modules required by these scripts are also included in this directory (`ESMDA.py`, `layer_3D.py`, and `util.py`).
 - `quick_testing_data/`: Directory to store example data for quick-testing. This includes training, validation, and testing data saved as `data_train_quicktest.npy`, `data_val_quicktest.npy`, and `data_test_quicktest.npy` files.
 
 
