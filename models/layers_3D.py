@@ -10,6 +10,7 @@ from tensorflow.keras.layers import ZeroPadding3D
 import tensorflow as tf
 reg_weights = 0.00001
 
+# 3D convolution + batch norm + ReLU activation
 def conv_bn_relu(nb_filter, depth, height, width, stride = (1, 1, 1)):
     def conv_func(x):
         x = Conv3D(nb_filter, (depth, height, width), strides=stride, padding='same', kernel_regularizer=regularizers.l2(reg_weights))(x)
@@ -20,6 +21,7 @@ def conv_bn_relu(nb_filter, depth, height, width, stride = (1, 1, 1)):
     return conv_func
 
 
+# TimeDistributed wrapper for conv_bn_relu
 def time_conv_bn_relu(nb_filter, depth, height, width, stride = (1, 1, 1)):
     def conv_func(x):
         x = TimeDistributed(Conv3D(nb_filter, (depth, height, width), strides=stride, padding='same', kernel_regularizer=regularizers.l2(reg_weights)))(x)
@@ -30,6 +32,7 @@ def time_conv_bn_relu(nb_filter, depth, height, width, stride = (1, 1, 1)):
     return conv_func
 
 
+# Residual block with two 3D convolutions
 def res_conv(nb_filter, depth, height, width, stride=(1, 1, 1)):
     def _res_func(x):
         identity = x
@@ -45,6 +48,7 @@ def res_conv(nb_filter, depth, height, width, stride=(1, 1, 1)):
     return _res_func
 
 
+# TimeDistributed version of res_conv
 def time_res_conv(nb_filter, depth, height, width, stride=(1, 1, 1)):
     def _res_func(x):
         identity = x
@@ -59,12 +63,11 @@ def time_res_conv(nb_filter, depth, height, width, stride=(1, 1, 1)):
 
     return _res_func
 
+
+# 3D transposed convolution (via upsampling + conv)
 def dconv_bn_nolinear(nb_filter, depth, height, width, stride=(2, 2, 2), activation="relu"):
     def _dconv_bn(x):
         print('size is ', stride)
-        
-        
-        
         x = UnSampling3D(size=stride)(x)
         x = ReflectionPadding3D((int(depth/2), int(height/2), int(width/2)))(x)
         
@@ -75,6 +78,8 @@ def dconv_bn_nolinear(nb_filter, depth, height, width, stride=(2, 2, 2), activat
 
     return _dconv_bn
 
+
+# TimeDistributed version of dconv_bn_nolinear
 def time_dconv_bn_nolinear(nb_filter, depth, height, width, stride=(2, 2, 2), activation="relu"):
     def _dconv_bn(x):
         x = TimeDistributed(UpSampling3D(size=stride))(x)
@@ -86,12 +91,16 @@ def time_dconv_bn_nolinear(nb_filter, depth, height, width, stride=(2, 2, 2), ac
 
     return _dconv_bn
 
+
+# Cropping3D wrapped in TimeDistributed
 def time_cropping_3D(cropping = (1, 1, 1)):
     def _cropping_3D(x):
         x = TimeDistributed(Cropping3D(cropping = cropping))(x)
         return x
     return _cropping_3D
 
+
+# 3D unpooling via nearest-neighbor upsampling
 class UnPooling3D(UpSampling3D):
     def __init__(self, size=(2, 2, 2)):
         super(UnPooling3D, self).__init__(size)
@@ -103,7 +112,7 @@ class UnPooling3D(UpSampling3D):
         h = self.size[2] * shapes[3]
         return tf.compat.v1.image.resize_nearest_neighbor(x, (d, w, h))
 
-    
+  
 class ReflectionPadding3D(ZeroPadding3D):
     """Reflection-padding layer for 3D data (spatial or spatio-temporal).
     Args:
