@@ -13,10 +13,24 @@ This repository contains the code and example data used in the paper:
 - sklearn
 
 
-## Usage
-- `models/`: Directory to store Python scripts for VAE and DSI.
-- `quick_testing_data/`: Directory to store example data for quick-testing. 
+## Contents
+- `models/`: Directory to store Python scripts for the VAE (vae_train.py) and DSI (dsi_vae.py).
+- `quick_testing_data/`: Directory to store example data for quick-testing (including example training, validation, and testing data, saved as 'data_train_quicktest.npy', 'data_val_quicktest.npy' 'data_test_quicktest.npy' files).
 
-To run a quick test, 
+
+## Quick Start
+- Download the repository
+- Prepare the testing data
+\
+The quick_testing_data/ folder includes a minimal working dataset. You don’t need to modify anything to run a test.
+- Train the Variational Autoencoder (VAE)
+Run the following command in the main directory:
+\
 ```bash
 python models/vae_train.py
+This will:
+Load the example dataset,
+Train the VAE model for a few epochs,
+Print the training loss during iterations,
+Save the model outputs
+
