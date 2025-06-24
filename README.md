@@ -5,7 +5,8 @@ This repository contains the code and example data used in the paper:
 
 
 ## Requirements
-- TensorFlow2.10.0
+- TensorFlow 2.10.0
+- Python 3.9
 - numpy
 - matplotlib
 - scipy
