@@ -4,9 +4,8 @@ This repository contains the code and example data used in the paper:
 "Prediction of Fault Slip Tendency in CO₂ Storage using Data-space Inversion." In this work, we implement a variational autoencoder (VAE)-based data=space inversion (DSI) framework to predict fault slip tendency in CO₂ storage projects. The VAE consists of stacked convolutional long short-term memory layers. The VAE latent variables are then utilized in DSI.
 
 ## Contents
-models/: Directory to store Python scripts for VAE and DSI
-
-quick_testing_data/: Directory to store example data for quick-testing
+- `models/` - Directory to store Python scripts for VAE and DSI
+- quick_testing_data/: Directory to store example data for quick-testing
 
 To run a quick test, 
 ```bash
