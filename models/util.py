@@ -14,6 +14,7 @@ def quantileSorted(valsSorted, p):
     elif flIdx == numReal:
         val = valsSorted[numReal-1]
     else:
+        # Linear interpolation between flIdx-1 and flIdx
         val = (tmpIdx - flIdx) * valsSorted[flIdx] + (flIdx + 1 - tmpIdx) * valsSorted[flIdx-1]
     return val
 
@@ -36,17 +37,19 @@ def preprocssToMatrixFormat(ensemble, obs_time_idx):
     n_qoi, n_step, n_real = ensemble.shape
     data['val'] = ensemble
     data['ensemble'] = np.reshape(ensemble, (n_qoi * n_step, n_real))
-    
+
+    # Global statistics
     data['ensemble_mean'] = np.expand_dims(np.mean(data['ensemble'], axis=1), axis=1)
     data['ensemble_std'] = np.expand_dims(np.maximum(np.std(data['ensemble'], axis=1), 1e-6), axis=1) 
     data['ensemble_centered'] = (data['ensemble'] - data['ensemble_mean']) / data['ensemble_std']
     data['ensemble_centered_mean'] = np.expand_dims(np.mean(data['ensemble_centered'], axis=1), axis=1)
     data['ensemble_centered_std'] = np.expand_dims(np.maximum(np.std(data['ensemble_centered'], axis=1), 1e-6), axis=1)
                                                    
-
+    # Statistics restricted to observation time steps
     data['ensembleObsTsteps'] = data['val'][:, obs_time_idx, :].reshape((-1, n_real))
     data['ensembleObsTsteps_mean'] = np.expand_dims(np.mean(data['ensembleObsTsteps'], axis=1), axis=1)    
-    
+
+    # For histogram transformation (HT)
     data['HT_simHist_mean'] = data['ensembleObsTsteps_mean']
     data['HT_simHist_std'] = np.expand_dims(np.maximum(np.std(data['ensembleObsTsteps'], axis=1), 1e-6), axis=1)
     data['HT_simHist_sorted'] = np.sort(data['ensembleObsTsteps']) # all * nsamples
@@ -56,6 +59,9 @@ def preprocssToMatrixFormat(ensemble, obs_time_idx):
 
 
 def cal_matrix_inverse(cd):
+    """
+    Compute the inverse of matrix `cd` using truncated SVD.
+    """
     varn = 0.95
     u, s, vh = linalg.svd(cd); 
     v = vh.T
@@ -71,12 +77,17 @@ def cal_matrix_inverse(cd):
     return cd_inv
 
 def cal_mahalanobis_dist(d, mu, cd_inv):
+    """
+    Compute the Mahalanobis distance between d and mu.
+    """
     dist = np.sqrt(np.dot(np.dot((d-mu).T, cd_inv), (d - mu)))
     return dist
 
 
-    
 def relativeErrorTimeAverage(true_data, prediction):
+    """
+    Compute relative error between true and predicted data averaged over time.
+    """
     error = np.sum(np.absolute(true_data[:, :, :] - prediction[:, :, :]), axis=2) / np.sum(true_data[:, :, :], axis=2)
     error = np.mean(error, axis=1)
     return error
