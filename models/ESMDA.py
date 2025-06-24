@@ -28,19 +28,22 @@ class ESMDA:
         self.sim_master = sim_master  # a class for performing simulation  
         
     def initialize(self):
+        # Initialize the model ensemble for assimilation
         self.m_k = np.copy(self.m_prior)
 
     def perturb_observation(self):
+        # Perturb the observed data with multivariate Gaussian noise
         cd = self.cd
         for i in range(0, self.nr):      
             self.d_uc[:, i] = (self.d_obs + np.random.multivariate_normal(np.zeros(self.nd), self.alpha[self.i_na] * cd, 1).T).reshape((-1, ))
 
     def forecast(self):
-        # forecast step
+        # Forecast step
         self.d_k = self.sim_master.genePredFromKsi(self.m_k)
         return True
 
     def update(self):
+        # Update based on perturbed observations using ESMDA
         self.perturb_observation()
         m_ave = np.mean(self.m_k, 1, keepdims=True)
         d_ave = np.mean(self.d_k, 1, keepdims=True)
