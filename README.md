@@ -24,12 +24,12 @@ In this work, we implement a variational autoencoder (VAE)-based data-space inve
 - Download the repository
 - Prepare the testing data
 The quick_testing_data/ folder includes a minimal working example. No modification is needed.
-- Train the Variational Autoencoder (VAE)
+- Train the variational autoencoder (VAE)
 Run the following command in the main directory:
 ```bash
 python models/vae_train.py
 ```
-This will load the example dataset, train the VAE model for a few epochs, print the loss during iterations, and save the trained weights
+This will load the example dataset, train the VAE model for a few epochs, print the loss during iterations, and save the trained weights.
 
 
 
