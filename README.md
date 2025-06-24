@@ -29,7 +29,7 @@ Run the following command in the main directory:
 ```bash
 python models/vae_train.py
 ```
-This will load the example dataset, train the VAE model for a few epochs, print the training loss during iterations, and save the trained weights
+This will load the example dataset, train the VAE model for a few epochs, print the loss during iterations, and save the trained weights
 
 
 
